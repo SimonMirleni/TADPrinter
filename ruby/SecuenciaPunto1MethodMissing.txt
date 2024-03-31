@@ -1,0 +1,61 @@
+Dado el ejemplo:
+
+documento = Document.new do
+	alumno nombre: "Matias", legajo: "123456-7" do
+		telefono { "1234567890" }
+            estado es_regular: true do
+              finales_rendidos { 3 }
+              materias_aprobadas { 5 }
+            end
+	end
+end
+
+
+Secuencia de ejecución dentro del method_missing de Documento:
+
+Tag.with_label(alumno)
+carga los argumentos de alumno
+@root = tag alumno
+prev_tag = nil, @current_tag = alumno
+value = instance_eval(bloque)
+	tag = Tag.with_label(telefono)
+	carga los argumentos del telefono (no hay)
+	TagAlumno.with_child(Tag telefono)
+	prev_tag = alumno, @current_tag = telefono
+	value = "1234567890"
+	telefono.with_child(value)
+	@current_tag = alumno
+	
+	El instance_eval(bloque) no termina hasta no haber evaluado todo el bloque, entonces...
+	
+	tag = Tag.with_label(estado)
+	carga los argumentos de estado
+	TagAlumno.with_child(TagEstado)
+	prev_tag = TagAlumno
+	@current_tag = TagEstado
+	value = instance_eval(bloque)
+		tag = Tag.with_label(finales_rendidos)
+		carga argumentos (no hay)
+		TagEstado.with_child(TagFinalesRendidos)
+		prev_tag = TagEstado
+		@current_tag = TagFinalesRendidos
+		value = instance_eval(3) -> Esto retorna 3
+		Como es numerico => TagFinalesRendidos.with_child(3)
+		@current_tag = TagEstado
+		
+		Todavía no terminó de evaluar todo el bloque...
+		
+		tag = Tag.with_label(materias_aprobadas)
+		carga argumentos (no hay)
+		TagEstado.with_child(TagMateriasAprobadas)
+		prev_tag = TagEstado
+		@current_tag = TagMateriasAprobadas
+		value = instance_eval(5) -> Retorna 5
+		Como es numerico -> TagMateriasAprobadas.with_child(5)
+		@current_tag = TagEstado
+	
+	@current_tag = TagAlumno
+	
+@current_tag = nil
+	
+	
